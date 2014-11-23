@@ -46,6 +46,7 @@ Target::init (void)
     Tsize_t = Tuns64;
   else
     gcc_unreachable();
+  Type::tsize_t = Type::basic[Tsize_t];
 
   if (POINTER_SIZE == 16)
     Tptrdiff_t = Tint16;
@@ -55,6 +56,7 @@ Target::init (void)
     Tptrdiff_t = Tint64;
   else
     gcc_unreachable();
+  Type::tptrdiff_t = Type::basic[Tptrdiff_t];
 
   ptrsize = (POINTER_SIZE / BITS_PER_UNIT);
 
