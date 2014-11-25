@@ -775,6 +775,8 @@ VarDeclaration::toObjFile (int)
       toAlias()->toObjFile (0);
       return;
     }
+  if (addressOverride)
+    return;
 
   // Do not store variables we cannot take the address of,
   // but keep the values for purposes of debugging.

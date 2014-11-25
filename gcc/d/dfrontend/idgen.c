@@ -269,6 +269,7 @@ Msgtable msgtable[] =
     { "msg" },
     { "startaddress" },
     { "mangle" },
+    { "address" },
 
 #ifdef IN_GCC
     // GDC-specific pragmas.
