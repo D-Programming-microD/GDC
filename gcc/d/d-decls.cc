@@ -138,6 +138,7 @@ Dsymbol::toImport (Symbol *sym)
 Symbol *
 VarDeclaration::toSymbol (void)
 {
+  gcc_assert (!addressOverride);
   if (!csym)
     {
       // For field declaration, it is possible for toSymbol to be called

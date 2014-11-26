@@ -5694,6 +5694,12 @@ Expression *VarExp::semantic(Scope *sc)
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
         checkPurity(sc, v);
+        if (v->addressOverride)
+        {
+            Expression *e = new PtrExp(loc, v->addressOverride);
+            e->semantic(sc);
+            return e;
+        }
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)

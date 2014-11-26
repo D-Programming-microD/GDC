@@ -1001,6 +1001,54 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
         return 0;
 }
 
+static unsigned setAddressOverride(Dsymbol *s, Expression *e, Scope *sc)
+{
+    AttribDeclaration *ad = s->isAttribDeclaration();
+
+    if (ad)
+    {
+        Dsymbols *decls = ad->include(NULL, NULL);
+        unsigned nestedCount = 0;
+
+        if (decls && decls->dim)
+        {
+            for (size_t i = 0; i < decls->dim; ++i)
+            {
+                signed ncount = setAddressOverride((*decls)[i], e, sc);
+                if (ncount == -1)
+                    return -1;
+                else
+                    nestedCount += ncount;
+            }
+        }
+
+        return nestedCount;
+    }
+    else if (s->isVarDeclaration())
+    {
+        VarDeclaration *decl = s->isVarDeclaration();
+        if (!decl->isDataseg() || !(decl->storage_class & STCextern))
+        {
+            s->error("pragma(address) can only be applied to extern variables");
+            return -1;
+        }
+        unsigned oldgag = global.gag;
+        global.gag = 1;
+        Expression* ptr = e->implicitCastTo(sc, Type::tsize_t);
+        ptr = ptr->castTo(sc, decl->type->pointerTo())->ctfeInterpret();
+        global.gag = oldgag;
+        if (ptr->op == TOKerror)
+        {
+            s->error("pointer expected for address, not '%s'", e->toChars());
+            return -1;
+        }
+        decl->addressOverride = ptr;
+        return 1;
+    }
+    else
+        return 0;
+}
+
 void PragmaDeclaration::semantic(Scope *sc)
 {   // Should be merged with PragmaStatement
 
@@ -1174,6 +1222,25 @@ void PragmaDeclaration::semantic(Scope *sc)
 #endif
         }
     }
+    else if (ident == Id::address)
+    {
+        if (!args || args->dim != 1)
+        {
+            error("one address argument expected");
+            return;
+        }
+        else
+        {
+            Expression *e = (*args)[0];
+
+            e = e->semantic(sc);
+            e = e->ctfeInterpret();
+            (*args)[0] = e;
+
+            if (e->op == TOKerror)
+                goto Lnodecl;
+        }
+    }
 #if IN_GCC
     else if (ident == Id::GNU_no_moduleinfo)
     {
@@ -1237,6 +1304,13 @@ Ldecl:
                 name[e->len] = 0;
 
                 unsigned cnt = setMangleOverride(s, name);
+
+                if (cnt > 1)
+                    error("can only apply to a single declaration");
+            }
+            if (ident == Id::address)
+            {
+                signed cnt = setAddressOverride(s, (*args)[0], sc);
 
                 if (cnt > 1)
                     error("can only apply to a single declaration");
